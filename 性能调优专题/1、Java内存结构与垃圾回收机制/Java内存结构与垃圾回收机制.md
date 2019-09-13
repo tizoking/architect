@@ -141,3 +141,4 @@
    - **老年代 GC【Major GC/Full GC】**：指发生在老年代的GC，出现了Major GC，经常会伴随至少一次的Minor Gc【并非绝对】。速度一般会比新生代GC慢10倍以上。
 
 > 注：`Full GC`会清理永久代【Java移除】，当永久代满了的时候，就会触发`Full GC`
+
