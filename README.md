@@ -21,6 +21,8 @@
 
 6. git push -u origin master //把本地库的所有内容推送到远程库上
 
+7. mac的更新密码和开机密码一致
+
 
 
 
