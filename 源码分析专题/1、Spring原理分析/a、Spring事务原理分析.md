@@ -244,5 +244,162 @@ public class AopTransactional {
 
 
 
-### 三、手写注解版Spring事务
+# 三、手写注解版Spring事务
+
+
+
+**自定义事务注解:**
+
+```java
+/**
+ * 自定义事务注解
+ */
+@Target({ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ExtTransactional {
+}
+```
+
+
+
+**Aop切面配置：**
+
+```java
+@Component
+@Aspect
+public class ExtAop {
+
+    @Autowired
+    private TransactionUtilsTest transactionUtils;
+
+
+    @AfterThrowing("execution(* club.maddm.service.*.* (..))")
+    public void afterThrowing() {
+        rollback();
+    }
+
+    @Around("execution(* club.maddm.service.*.* (..))")
+    public void around(ProceedingJoinPoint proceedingJoinPoint)throws Throwable {
+        //1、获取当前方法上的事务注解
+        ExtTransactional annotation = getExtTransactional(proceedingJoinPoint);
+        //2、判断是否开启事务
+        getTransactionStatus(annotation);
+        //3、调用目标方法
+        proceedingJoinPoint.proceed();
+        //4、如果存在事务，提交事务
+        commit();
+
+    }
+
+    /**
+     * 存在事务，提交事务
+     */
+    private void commit() {
+        //5、判断方法上是否存在注解提交或回滚事务
+        if (transactionUtils.isExistingTransaction()) {
+            System.out.println("提交事务");
+            transactionUtils.commit();
+        }
+    }
+
+    /**
+     * 根据是否存在事务注解，判断是否开启事务
+     * @param annotation
+     * @return
+     */
+    private void getTransactionStatus(ExtTransactional annotation) {
+        if (annotation != null) {
+            //存在事务开启事务
+            System.out.println("开启事务");
+            transactionUtils.begin();
+        }
+    }
+
+    /**
+     * 判断方法上是否有事务注解
+     * @param proceedingJoinPoint
+     * @return
+     * @throws NoSuchMethodException
+     */
+    private ExtTransactional getExtTransactional(ProceedingJoinPoint proceedingJoinPoint) throws NoSuchMethodException {
+
+        //1、获取当前调用方法的名称
+        String methodName = proceedingJoinPoint.getSignature().getName();
+        //2、获取目标对象
+        Class<?> classTarget = proceedingJoinPoint.getTarget().getClass();
+        //3、获取目标对象类型
+        Class[] types = ((MethodSignature) proceedingJoinPoint.getSignature()).getParameterTypes();
+        //4、获取目标对象方法
+        Method objMethod = classTarget.getMethod(methodName, types);
+
+        //返回当前方法上的事务注解
+        return objMethod.getAnnotation(ExtTransactional.class);
+    }
+
+    /**
+     * 回滚事务
+     */
+    private void rollback() {
+        System.out.println("异常通知：如果存在事务将回滚事务");
+        if (transactionUtils.isExistingTransaction()) {
+            transactionUtils.rollback();
+        }
+    }
+}
+```
+
+
+
+**事务工具类：**
+
+```java
+@Component
+//@Scope("prototype")//不能为单例 可能会有线程安全问题,改为使用threodload解决线程安全问题
+public class TransactionUtilsTest {
+
+	private static ThreadLocal<TransactionStatus> transactionStatusThreadLocal
+			= new ThreadLocal<>();
+
+	@Autowired
+	private DataSourceTransactionManager dataSourceTransactionManager;//拿到数据源接口
+
+	// 开启事务
+	public void begin() {
+		TransactionStatus transaction
+				= dataSourceTransactionManager
+				.getTransaction(new DefaultTransactionAttribute());
+
+		transactionStatusThreadLocal.set(transaction);
+	}
+
+	// 提交事务
+	public void commit() {
+		dataSourceTransactionManager.commit(transactionStatusThreadLocal.get());
+	}
+
+	// 回滚事务
+	public void rollback() {
+		dataSourceTransactionManager.rollback(transactionStatusThreadLocal.get());
+	}
+
+	public boolean isExistingTransaction() {
+		try {
+			if (transactionStatusThreadLocal.get() != null) {
+				return true;
+			}
+		} catch (Exception e) {
+			return false;
+		}
+		return false;
+	}
+}
+```
+
+
+
+**xml配置文件以及业务层、持久层：**
+
+```java
+//xml配置文件和上个相同，业务层和持久层略
+```
 
