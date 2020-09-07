@@ -69,7 +69,7 @@ GRANT REPLICATION SLAVE ON *.* to 'mysync'@'%' identified by 'q123456';
 show master status;
 ```
 
-**拿到File：**`mysql-bin.000001`，如果是null说明`my.cnf`没有配置好。
+**拿到File：**`mysql-bin.000001`，如果是`null`说明`my.cnf`没有配置好。
 
 **拿到position：**431
 
